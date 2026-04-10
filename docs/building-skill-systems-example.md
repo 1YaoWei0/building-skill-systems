@@ -227,6 +227,8 @@ Meta skill for extending the repository with new domain-specific skills later.
 
 Bootstrap and context injection layer for Claude Code, with future-friendly structure for cross-platform adaptation.
 
+> **GitHub Copilot CLI note:** For Copilot CLI repositories, hooks do **not** live in a root `hooks/` directory. They must be placed in `.github/hooks/` using the official `version: 1` JSON format. Scripts live in `.github/hooks/scripts/` and receive JSON input from stdin. See the Phase 4 hooks format reference in the `building-skill-systems` SKILL.md for the full specification.
+
 ### `docs/security-response/specs/`
 
 Design/spec documents describing workflow or major system changes to this repository.

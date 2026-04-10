@@ -294,7 +294,7 @@ After the first round, only ask follow-up questions where the answers affect the
 
 #### If the user wants a full framework:
 Ask:
-- Should it include hooks?
+- Should it include hooks? *(For GitHub Copilot CLI: hooks live in `.github/hooks/` with `version: 1` JSON format — not a root `hooks/` directory)*
 - Should it include docs/specs/plans?
 - Should it include tests?
 - Should it include reviewer/agent roles?
@@ -482,9 +482,14 @@ For repositories targeting **GitHub Copilot CLI**, place `skills/` and `agents/`
 │   ├── skills/                       ← skills go HERE for Copilot CLI
 │   │   └── <skill-name>/
 │   │       └── SKILL.md
-│   └── agents/                       ← agents go HERE for Copilot CLI
-│       └── <agent-name>.md
-├── commands/
+│   ├── agents/                       ← agents go HERE for Copilot CLI
+│   │   └── <agent-name>.agent.md
+│   └── hooks/                        ← hooks go HERE for Copilot CLI (version: 1 format)
+│       ├── <name>.json               ← hook config (any filename, must be *.json)
+│       ├── logs/                     ← local audit logs — add to .gitignore
+│       └── scripts/                  ← hook scripts (.ps1 / .sh)
+│           ├── session-start.ps1
+│           └── ...
 ├── docs/
 │   ├── testing.md
 │   └── <system-name>/
@@ -688,6 +693,85 @@ You MUST produce a matrix like this:
 If the user only targets one platform, still document that explicitly.
 
 Do not leave platform support as implied.
+
+---
+
+## GitHub Copilot CLI — Official Hooks Format
+
+When designing a repository for **GitHub Copilot CLI**, hooks must follow the official `version: 1` specification.
+
+### File location
+
+Hook config files live in `.github/hooks/*.json` (any filename, must match `*.json`).
+Hook scripts live in `.github/hooks/scripts/`.
+Audit logs live in `.github/hooks/logs/` — **add this to `.gitignore`**.
+
+### Required JSON format
+
+```json
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "type": "command",
+        "bash": "./scripts/my-hook.sh",
+        "powershell": "./scripts/my-hook.ps1",
+        "cwd": ".github/hooks",
+        "timeoutSec": 30,
+        "comment": "Human-readable description"
+      }
+    ],
+    "userPromptSubmitted": [...],
+    "preToolUse": [...],
+    "postToolUse": [...],
+    "errorOccurred": [...]
+  }
+}
+```
+
+**Critical rules:**
+
+| Rule | Detail |
+|------|--------|
+| `"hooks"` is an **object** | Keyed by event name — **not** an array |
+| Use `"bash"` / `"powershell"` keys | The `"script"` key does not exist in the spec |
+| Set `"cwd"` | Controls path resolution for scripts — use `".github/hooks"` |
+| `"timeoutSec"` | Default is 30s — increase for long-running scripts (e.g., VS launch needs 90s) |
+| Scripts read stdin | Hook scripts receive JSON input on stdin — always read it |
+
+### Hook script stdin protocol (PowerShell)
+
+```powershell
+$ErrorActionPreference = "Stop"
+$inputData = [Console]::In.ReadToEnd() | ConvertFrom-Json
+# Access fields: $inputData.source, $inputData.toolName, $inputData.error.message, etc.
+```
+
+### Available hook events
+
+| Event | Input fields | Can block? |
+|-------|-------------|-----------|
+| `sessionStart` | `timestamp`, `cwd`, `source`, `initialPrompt` | No — output ignored |
+| `sessionEnd` | `timestamp`, `cwd`, `reason` | No — output ignored |
+| `userPromptSubmitted` | `timestamp`, `cwd`, `prompt` | No — output ignored |
+| `preToolUse` | `timestamp`, `cwd`, `toolName`, `toolArgs` (JSON string) | **Yes** — can deny |
+| `postToolUse` | `timestamp`, `cwd`, `toolName`, `toolArgs`, `toolResult` | No — output ignored |
+| `errorOccurred` | `timestamp`, `cwd`, `error.message`, `error.name`, `error.stack` | No — output ignored |
+
+### Blocking tool execution with `preToolUse`
+
+The only hook whose output is processed. Return this JSON to block a tool:
+
+```powershell
+@{
+    permissionDecision       = "deny"
+    permissionDecisionReason = "Reason shown to user"
+} | ConvertTo-Json -Compress
+exit 0
+```
+
+Return nothing (or `"allow"`) to let the tool proceed.
 
 ---
 
