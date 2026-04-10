@@ -187,6 +187,17 @@ Once you have these, move to summary and architecture.
 ### Full-questionnaire mode
 Only switch to a full all-at-once questionnaire if the user explicitly asks for it.
 
+### Freeform input rule
+
+**Always allow the user to provide an answer not listed in the choices.**
+
+When presenting a multiple-choice question:
+- offer the most likely options as choices
+- always allow a freeform alternative in addition to the choices
+- never lock the user into only the provided options
+
+A user may need a different platform, a different scope, a different path, or a different answer than any choice you predicted. If you block freeform input, you block valid user intent.
+
 ---
 
 ## Recommended Opening
@@ -254,6 +265,7 @@ It is only meant to determine the overall direction of the repository.
 3. Who are the **primary users**?
 4. Do you want a **focused/lightweight skill pack** or a **complete workflow framework**?
 5. Which **platforms** should it support first?
+6. *(Mode A only)* Where should the new repository be created? Ask for the **full folder path** (e.g., `C:\Projects\my-skills` or `~/projects/my-skills`). Do not assume a location.
 
 That is the default first-round question set.
 
@@ -449,6 +461,44 @@ Unless the user explicitly wants something lighter, bias toward a structure like
 ├── skills/
 └── tests/
 ```
+
+### GitHub Copilot CLI layout
+
+**Important:** GitHub Copilot CLI discovers skills and agents from inside the `.github/` directory, not from the repository root.
+
+For repositories targeting **GitHub Copilot CLI**, place `skills/` and `agents/` inside `.github/`:
+
+```text
+<repo-root>/
+├── README.md
+├── COPILOT.md
+├── LICENSE
+├── CHANGELOG.md
+├── .gitignore
+├── .github/
+│   ├── copilot-instructions.md       ← Copilot CLI skill discovery and routing
+│   ├── PULL_REQUEST_TEMPLATE.md
+│   ├── ISSUE_TEMPLATE/
+│   ├── skills/                       ← skills go HERE for Copilot CLI
+│   │   └── <skill-name>/
+│   │       └── SKILL.md
+│   └── agents/                       ← agents go HERE for Copilot CLI
+│       └── <agent-name>.md
+├── commands/
+├── docs/
+│   ├── testing.md
+│   └── <system-name>/
+│       ├── specs/
+│       └── plans/
+└── tests/
+    ├── skill-triggering/
+    │   └── prompts/
+    ├── explicit-skill-requests/
+    │   └── prompts/
+    └── <system-name>/
+```
+
+Use this layout when the target platform is GitHub Copilot CLI. Adjust appropriately for multi-platform repositories.
 
 ---
 
